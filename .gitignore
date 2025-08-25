@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# output files
+*.csv
+*.xlsx
+
 # Distribution / packaging
 .Python
 build/
@@ -137,7 +141,7 @@ celerybeat.pid
 # Environments
 .env
 .envrc
-.venv
+.venv/
 env/
 venv/
 ENV/
