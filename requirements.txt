@@ -1,0 +1,3 @@
+edgegrid-python
+python-dotenv
+requests
