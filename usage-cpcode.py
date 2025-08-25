@@ -241,7 +241,7 @@ def cptrafficPerMonth(productId:str, month:str, includeNoTraffic:bool=False):
         addedCpCodes.add(cpcodeId)   
     # Add cpcodes that have no traffic
 
-    if not includeNoTraffic:
+    if includeNoTraffic:
         for cpcodeId, cpcode in cpcodeMap.items():
             if cpcodeId not in addedCpCodes:
                 validContract = False
@@ -278,7 +278,7 @@ def cptrafficPerMonth(productId:str, month:str, includeNoTraffic:bool=False):
             addedCpCodes.add(cpcodeId)
     return traffic
 
-if __name__ == "__main__":
+def main():
     """Main function to run the traffic analysis"""
     # Default: last month
     # Format: YYYY-MM
@@ -294,7 +294,7 @@ if __name__ == "__main__":
         productId = sys.argv[2]
     
     sumRepGroups = {}
-    x = cptrafficPerMonth(productId, month)
+    x = cptrafficPerMonth(productId, month, includeNoTraffic=True)
     with open(f"traffic_{month}.csv", "w", newline='') as csvfile:
         fieldnames = ["contract", "cpcode", "name", "groupPath", "repGroups", "hits", "gb"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -331,3 +331,5 @@ if __name__ == "__main__":
         stats = sumRepGroups[rg]
         print(f"{rg:>20}: {stats['hits']/1_000_000:>10.2f} {stats['gb']:>10.2f}")
                 
+if __name__ == "__main__":
+    main() 
