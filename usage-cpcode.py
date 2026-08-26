@@ -200,6 +200,8 @@ def cptrafficPerMonth(productId:str, month:str, includeNoTraffic:bool=False):
     accountGroups = listAccountGroups()
     groupmap = {}
     for grp in accountGroups:
+        if not grp['contractId']:
+            continue
         groupId = int(grp["groupId"].replace("grp_",""))
         groupmap[groupId] = grp
         contractId = grp["contractId"].replace("ctr_", "")

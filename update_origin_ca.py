@@ -31,125 +31,14 @@ import os
 from typing import Any
 
 from akamai_client import get_akamai_session
-from urllib.parse import urljoin
-
-def find_property_by_name(session, base_url, property_name: str) -> Any:
-    """
-   Finds an Akamai property by its name.
-
-   API Endpoint: {base_url}/papi/v1/search/find-by-value
-    Method: POST
-    Body: {"propertyName": property_name}
-   Returns:
-       dict: Property details if found, else None.
-    """
-    
-    search_url = urljoin(base_url, "/papi/v1/search/find-by-value")
-    payload = {"propertyName": property_name}
-    response = session.post(search_url, json=payload)
-    print(f"Find property - status code: {response.status_code}")
-    #if response.status_code > 400:
-    print(f"Response content: {response.text}")
-    response.raise_for_status()
-    data = response.json()
-
-    for version in data.get("versions", {}).get("items", []):
-        if version.get("productionStatus") == "ACTIVE":
-            return version
-
-    return None
-
-def get_property_rules(session, base_url, contract_id: str, group_id: str, property_id: str, prod_version: str) -> dict:
-    """
-    Fetches Akamai PAPI property versions.
-    
-    API Endpoint: /papi/v1/properties/{property_id}/versions/{prod_version}/rules?contractId={contract_id}&groupId={group_id}
-    Method: GET
-
-    """
-    endpoint = f"/papi/v1/properties/{property_id}/versions/{prod_version}/rules"
-    url = urljoin(base_url, endpoint)
-    params = {
-        "contractId": contract_id,
-        "groupId": group_id,
-        "originalInput": "false"
-    }
-    response = session.get(url, params=params)
-    print(f"Get property rules - status code: {response.status_code}")
-    if response.status_code > 400:
-        print(f"Response content: {response.text}")
-    response.raise_for_status()
-    return response.json()
-
-def update_property_rules(session, base_url, contract_id: str, group_id: str, property_id: str, prop_version: str, rules: dict) -> dict:    
-    """
-    Updates Akamai PAPI property rules.
-
-    API Endpoint: /papi/v1/properties/{property_id}/versions/{prop_version}/rules?contractId={contract_id}&groupId={group_id}
-    Method: PUT
-
-    Args:
-        session: The requests session object.
-        base_url (str): The base URL for the Akamai API.
-        contract_id (str): The contract ID of the property.
-        group_id (str): The group ID of the property.
-        property_id (str): The property ID to update.
-        prop_version (str): The version number to update.
-        rules (dict): The updated rules object.
-
-    Returns:
-        dict: The response from the update operation.
-    """
-    endpoint = f"/papi/v1/properties/{property_id}/versions/{prop_version}/rules"
-    url = urljoin(base_url, endpoint)
-    params = {
-        "contractId": contract_id,
-        "groupId": group_id
-    }
-    response = session.put(url, params=params, json=rules)
-    print(f"Update property rules - status code: {response.status_code}")
-    if response.status_code > 400:
-        print(f"Response content: {response.text}")
-    response.raise_for_status()
-    return response.json()
-
-def find_behavior(rules: Any, behavior_name: str) -> Any:
-    """
-    Recursively searches for all behaviors by name in the given rules.
-
-    Args:
-        rules (dict): The rules object to search within.
-        behavior_name (str): The name of the behavior to find.
-
-    Returns:
-        list: A list of all matching behaviors, empty if none found.
-    """
-    if isinstance(rules, dict):
-        if rules.get("name") == behavior_name:
-            return [rules]
-        results = []
-        for key, value in rules.items():
-            results.extend(find_behavior(value, behavior_name))
-        return results
-    elif isinstance(rules, list):
-        results = []
-        for item in rules:
-            results.extend(find_behavior(item, behavior_name))
-        return results
-    return []
-
-def read_json_file(file_path: str) -> Any:
-    """
-    Reads a JSON file and returns its content.
-
-    Args:
-        file_path (str): The path to the JSON file.
-
-    Returns:
-        any: The content of the JSON file.
-    """
-    with open(file_path, "r") as f:
-        return json.load(f)
+from akamai_papi import (
+    activate_property_version,
+    find_behavior,
+    find_property_by_name,
+    get_property_rules,
+    new_property_version,
+    update_property_rules,
+)
 
 
 def change_property_rules(session, base_url, data_dir: str, rules: Any,property_name: str, property_details: dict, origin_settings: dict) -> int:
@@ -194,85 +83,12 @@ def change_property_rules(session, base_url, data_dir: str, rules: Any,property_
 
     return iUpdated
 
-def activate_property_version(session, base_url, contract_id: str, group_id: str, property_id: str, version: str, network: str, emails: list[str], comments: str) -> dict:
-    """
-    Activate a specific version of an Akamai property.
-
-    API Endpoint: /papi/v1/properties/{propertyId}/activations?contractId={contract_id}&groupId={group_id}
-    Method: POST
-
-    Args:
-        session: The requests session object.
-        base_url (str): The base URL for the Akamai API.
-        contract_id (str): The contract ID of the property.
-        group_id (str): The group ID of the property.
-        property_id (str): The property ID to activate.
-        version (str): The version number to activate.
-        network (str): The network to activate on.
-        emails (list[str]): The list of email addresses to notify.
-        comments (str): Activation comments.
-
-    Returns:
-        dict: The response from the activation operation.
-    """
-    endpoint = f"/papi/v1/properties/{property_id.replace('prp_', '')}/activations"
-    url = urljoin(base_url, endpoint)
-    params = {
-        "contractId": contract_id,
-        "groupId": group_id}
-    body = {
-        "propertyVersion": version,
-        "notifyEmails": emails,
-        "acknowledgeAllWarnings": "true",
-        "network": network,
-        "note": comments,
-        "activationType": "ACTIVATE"
-    }
-    response = session.post(url, params=params, json=body)
-    print(f"Activate status code: {response.status_code}")
-    print(f"Response content: {response.text}")
-    response.raise_for_status()
-    return response.json()
-
-def new_property_version(session, base_url, contract_id: str, group_id: str, property_id: str, version: str) -> dict:
-    """
-    Create a new version of an Akamai property.
-
-    API Endpoint: /papi/v1/properties/{propertyId}/versions?contractId={contract_id}&groupId={group_id}
-    Method: POST
-
-    Args:
-        session: The requests session object.
-        base_url (str): The base URL for the Akamai API.
-        contract_id (str): The contract ID of the property.
-        group_id (str): The group ID of the property.
-        property_id (str): The property ID to clone.
-        version (str): The version number to clone.
-
-    Returns:
-        dict: The response from the clone operation.
-    """
-    endpoint = f"/papi/v1/properties/{property_id.replace('prp_', '')}/versions"
-    url = urljoin(base_url, endpoint)
-    params = {
-        "contractId": contract_id,
-        "groupId": group_id
-    }
-    body = {
-        "createFromVersion": version
-    }
-    response = session.post(url, params=params, json=body)
-    print(f"New property version status code: {response.status_code}")
-    if response.status_code > 400:
-        print(f"Response content: {response.text}")
-    response.raise_for_status()
-    return response.json()
-
 if __name__ == "__main__":
 
     # Configuration
     property_name = "hdebeij.nl"
-    origin_settings = read_json_file("origin_settings.json")
+    with open("origin_settings_example.json", encoding="utf-8") as file:
+        origin_settings = json.load(file)
 
     dry_run = False  # Set to False to actually update the property
     activate_property = True  # Set to True to activate the new version after updating
