@@ -1,5 +1,7 @@
 # pyscripts
-Scripts, examples, mostly akamai related
+Scripts, examples, mostly akamai related.
+
+Use as example only, no warranty.
 
 # Environment preparation
 ```bash
