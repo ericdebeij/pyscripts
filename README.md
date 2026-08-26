@@ -2,8 +2,10 @@
 Scripts, examples, mostly akamai related
 
 # Environment preparation
+```bash
 uv venv
 uv pip install -r requirements.txt
+```
 
 # usage-cpcode.py
 
@@ -57,6 +59,11 @@ contains these fields:
 	"customCertificateAuthorities": []
 }
 ```
+For a complete sample, see [origin_settings_example.json](origin_settings_example.json).
+
+Best way to create the origin_settings.json is by grabbing it from an existing property with the right CA settings in place.
+In property manager, navigate to the property, go to the "View JSON" section in the "Property Configuration Settings" 
+and copy the necessary option fields to a file called origin_settings.json.
 
 The script stores the property search result, original and updated rules, new
 version response, and activation response in the `data/` directory. Review the
