@@ -213,3 +213,5 @@ __marimo__/
 data/*
 output.*
 draft.*
+
+origin_settings.json

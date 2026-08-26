@@ -2,7 +2,7 @@
 This script updates the origin settings of an Akamai property using the PAPI API.
 It finds the property by name, retrieves its rules, updates the origin settings, and optionally activates the new version.
 Usage:
-    python update-origin-ca.py
+    python update-origin-ca.py PROPERTY_NAME
 Files used:
 - .edgerc: Contains the Akamai API credentials. They should be set up in the user's home directory in the [default] section
 -- The API credentials must have READ-WRITE access to the entire contract as we search for the property by name.
@@ -10,9 +10,8 @@ Files used:
 
 This is an example script and should be used with caution. Always test in a staging environment before applying changes to production.
 
-Customize the following variables in the main block:
-- property_name: The name of the Akamai property to update.
-- origin_settings: A dictionary containing the new origin settings to apply.
+Pass the name of the Akamai property to update as the required command-line argument.
+The origin settings are loaded from origin_settings.json.
 
 Best way to create the origin_settings.json is by grabbing it from an existing property with the right CA settings in place.
 In property manager, navigate to the property, go to the "View JSON section in the Property Configuration Settings" 
@@ -26,6 +25,7 @@ Fields needed in the origin_settings.json are:
 Data will be stored in the ./data directory, which will be created if it doesn't exist.
 Use diff tools to compare the original and updated rules to ensure the changes are as expected.
 """
+import argparse
 import json
 import os
 from typing import Any
@@ -45,18 +45,6 @@ def change_property_rules(session, base_url, data_dir: str, rules: Any,property_
     """
     Updates the origin settings in the property rules.
     The fields in the origin options will be updated with the values from the origin_settings dictionary.
-
-    Args:
-        session: The requests session object.
-        base_url (str): The base URL for the Akamai API.
-        data_dir (str): The directory to store the JSON files.
-        rules (dict): The property rules object.
-        property_name (str): The name of the property.
-        property_details (dict): The details of the property, including the version.
-        origin_settings (dict): The origin settings to update.
-
-    Returns:
-        int: The number of behaviors updated.
     """
 
     behaviors = find_behavior(rules, "origin")
@@ -85,12 +73,24 @@ def change_property_rules(session, base_url, data_dir: str, rules: Any,property_
 
 if __name__ == "__main__":
 
-    # Configuration
-    property_name = "hdebeij.nl"
-    with open("origin_settings_example.json", encoding="utf-8") as file:
-        origin_settings = json.load(file)
+    parser = argparse.ArgumentParser(description="Update the origin settings of an Akamai property.")
+    parser.add_argument("property_name", help="The name of the Akamai property to update.")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Update and save local rule files without changing the Akamai property.",
+    )
+    args = parser.parse_args()
 
-    dry_run = False  # Set to False to actually update the property
+    # Configuration
+    property_name = args.property_name
+    try:
+        with open("origin_settings.json", encoding="utf-8") as file:
+            origin_settings = json.load(file)
+    except FileNotFoundError:
+        parser.error("origin_settings.json was not found. Check README.md for setup instructions.")
+
+    dry_run = args.dry_run
     activate_property = True  # Set to True to activate the new version after updating
     activate_network = "STAGING"  # Change to "PRODUCTION" if you want to activate in production
     activate_emails = ["example@example.com"]

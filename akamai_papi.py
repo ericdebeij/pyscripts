@@ -16,6 +16,36 @@ def get_hostnames(session: Any, base_url: str) -> list:
     return data.get("hostnames", []).get("items", [])
 
 
+def get_groups(session: Any, base_url: str) -> list:
+    """Fetch the list of groups from the Akamai API."""
+    groups_url = urljoin(base_url, "/papi/v1/groups")
+    response = session.get(groups_url)
+    response.raise_for_status()
+    data = response.json()
+    return data.get("groups", [])
+
+
+def get_property(
+    session: Any,
+    base_url: str,
+    contract_id: str,
+    group_id: str,
+    property_id: str,
+) -> dict:
+    """Fetch the details of a specific Akamai property."""
+    property_url = urljoin(base_url, f"/papi/v1/properties/{property_id}")
+    params = {
+        "contractId": contract_id,
+        "groupId": group_id,
+    }
+    response = session.get(property_url, params=params)
+    if response.status_code > 400:
+        print(f"Error fetching property: {response.status_code}")
+        print(f"Response content: {response.text}")
+    response.raise_for_status()
+    return response.json()
+
+
 def find_behavior(rules: Any, behavior_name: str) -> Any:
     """
     Recursively searches for all behaviors by name in the given rules.
