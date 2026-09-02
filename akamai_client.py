@@ -12,10 +12,18 @@ def get_akamai_session(edgerc_path: str = "~/.edgerc", section: str = "default")
     """
     expanded_path = os.path.expanduser(edgerc_path)
     edgerc = EdgeRc(expanded_path)
+    account_key = edgerc.get(section, 'account_key', fallback=None)  
+
     
     base_url = f"https://{edgerc.get(section, 'host')}"
     
     session = requests.Session()
     session.auth = EdgeGridAuth.from_edgerc(edgerc, section)
-    
+
+    if account_key:
+        session.params['accountSwitchKey'] = account_key
+
+    print(session.params)
+
     return session, base_url
+

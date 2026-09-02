@@ -3,6 +3,7 @@ name = "pyscripts"
 version = "0.1.0"
 requires-python = ">=3.14"
 dependencies = [
+    "dnspython>=2.8.0",
     "dotenv>=0.9.9",
     "edgegrid-python>=2.0.7",
 ]

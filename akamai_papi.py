@@ -15,6 +15,21 @@ def get_hostnames(session: Any, base_url: str) -> list:
     data = response.json()
     return data.get("hostnames", []).get("items", [])
 
+def get_edgehosts(session: Any, base_url: str, contract_id: str, group_id: str) -> list:
+    """Fetch the list of edge hostnames from the Akamai API."""
+    edgehosts_url = urljoin(base_url, "/papi/v1/edgehostnames")
+    params = {
+        "contractId": contract_id,
+        "groupId": group_id,
+    }
+    response = session.get(edgehosts_url, params=params)
+    if response.status_code > 400:
+        print(f"Error fetching edge hostnames: {response.status_code}")
+        print(f"Response content: {response.text}")
+    response.raise_for_status()
+    data = response.json()
+    return data.get("edgeHostnames", {}).get("items", [])
+
 
 def get_groups(session: Any, base_url: str) -> list:
     """Fetch the list of groups from the Akamai API."""
@@ -22,7 +37,7 @@ def get_groups(session: Any, base_url: str) -> list:
     response = session.get(groups_url)
     response.raise_for_status()
     data = response.json()
-    return data.get("groups", [])
+    return data.get("groups", []).get("items", [])
 
 
 def get_property(
