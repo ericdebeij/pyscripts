@@ -2,18 +2,45 @@
 
 from typing import Any
 from urllib.parse import urljoin
+from akamai_client import raise_for_status
 
-
-def get_hostnames(session: Any, base_url: str) -> list:
-    """Fetch the list of hostnames from the Akamai API."""
-    hostnames_url = urljoin(base_url, "/papi/v1/hostnames")
-    response = session.get(hostnames_url)
-    if response.status_code > 400:
-        print(f"Error fetching hostnames: {response.status_code}")
-        print(f"Response content: {response.text}")
+def get_all_contracts(session, base_url):
+    """Fetches all contract IDs associated with the Akamai account."""
+    url = urljoin(base_url, "/papi/v1/contracts")
+    response = session.get(url)
     response.raise_for_status()
     data = response.json()
-    return data.get("hostnames", []).get("items", [])
+    return [item["contractId"] for item in data["contracts"]["items"]]
+
+def get_hostnames(
+    session: Any,
+    base_url: str,
+    contract_id: str | None = None,
+    group_id: str | None = None,
+    network: str | None = None,
+) -> dict:
+    """Fetch hostnames, optionally filtered by contract, group, and network."""
+    hostnames_url = urljoin(base_url, "/papi/v1/hostnames")
+    params = {
+        key: value
+        for key, value in {
+            "contractId": contract_id,
+            "groupId": group_id,
+            "network": network,
+        }.items()
+        if value is not None
+    }
+    response = session.get(hostnames_url, params=params) if params else session.get(hostnames_url)
+    raise_for_status(response)
+    data = response.json()
+
+    # The hostnames are double, as there are hostname for production and staging environments.
+    hostnames = {}
+    for item in data.get("hostnames", []).get("items", []):
+        hostname = item.get("cnameFrom")
+        if hostname:
+            hostnames.setdefault(hostname, {}).update(item)
+    return hostnames
 
 def get_edgehosts(session: Any, base_url: str, contract_id: str, group_id: str) -> list:
     """Fetch the list of edge hostnames from the Akamai API."""
@@ -23,10 +50,7 @@ def get_edgehosts(session: Any, base_url: str, contract_id: str, group_id: str) 
         "groupId": group_id,
     }
     response = session.get(edgehosts_url, params=params)
-    if response.status_code > 400:
-        print(f"Error fetching edge hostnames: {response.status_code}")
-        print(f"Response content: {response.text}")
-    response.raise_for_status()
+    raise_for_status(response)
     data = response.json()
     return data.get("edgeHostnames", {}).get("items", [])
 
@@ -35,7 +59,7 @@ def get_groups(session: Any, base_url: str) -> list:
     """Fetch the list of groups from the Akamai API."""
     groups_url = urljoin(base_url, "/papi/v1/groups")
     response = session.get(groups_url)
-    response.raise_for_status()
+    raise_for_status(response)
     data = response.json()
     return data.get("groups", []).get("items", [])
 
@@ -54,10 +78,7 @@ def get_property(
         "groupId": group_id,
     }
     response = session.get(property_url, params=params)
-    if response.status_code > 400:
-        print(f"Error fetching property: {response.status_code}")
-        print(f"Response content: {response.text}")
-    response.raise_for_status()
+    raise_for_status(response)
     return response.json()
 
 
@@ -92,9 +113,7 @@ def find_property_by_name(session: Any, base_url: str, property_name: str) -> An
     search_url = urljoin(base_url, "/papi/v1/search/find-by-value")
     payload = {"propertyName": property_name}
     response = session.post(search_url, json=payload)
-    print(f"Find property - status code: {response.status_code}")
-    print(f"Response content: {response.text}")
-    response.raise_for_status()
+    raise_for_status(response)
     data = response.json()
 
     for version in data.get("versions", {}).get("items", []):
@@ -121,10 +140,7 @@ def get_property_rules(
         "originalInput": "false",
     }
     response = session.get(url, params=params)
-    print(f"Get property rules - status code: {response.status_code}")
-    if response.status_code > 400:
-        print(f"Response content: {response.text}")
-    response.raise_for_status()
+    raise_for_status(response)
     return response.json()
 
 
@@ -145,10 +161,7 @@ def update_property_rules(
         "groupId": group_id,
     }
     response = session.put(url, params=params, json=rules)
-    print(f"Update property rules - status code: {response.status_code}")
-    if response.status_code > 400:
-        print(f"Response content: {response.text}")
-    response.raise_for_status()
+    raise_for_status(response)
     return response.json()
 
 
@@ -179,9 +192,7 @@ def activate_property_version(
         "activationType": "ACTIVATE",
     }
     response = session.post(url, params=params, json=body)
-    print(f"Activate status code: {response.status_code}")
-    print(f"Response content: {response.text}")
-    response.raise_for_status()
+    raise_for_status(response)
     return response.json()
 
 
@@ -204,8 +215,5 @@ def new_property_version(
         "createFromVersion": version,
     }
     response = session.post(url, params=params, json=body)
-    print(f"New property version status code: {response.status_code}")
-    if response.status_code > 400:
-        print(f"Response content: {response.text}")
-    response.raise_for_status()
+    raise_for_status(response)
     return response.json()
