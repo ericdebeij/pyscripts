@@ -9,6 +9,7 @@ __pycache__/
 # output files
 *.csv
 *.xlsx
+!*_template.xlsx
 
 # Distribution / packaging
 .Python
